@@ -27,7 +27,62 @@ const sounds = {
     'C': 'key24.mp3'
 };
 
-function playSound(id) {
+let isRecording = false;
+let startTime = 0;
+let recordedNotes = [];
+
+const btnRecord = document.getElementById('btn-record');
+const btnPlay = document.getElementById('btn-play');
+
+if (btnRecord) {
+    btnRecord.addEventListener('click', toggleRecording);
+}
+if (btnPlay) {
+    btnPlay.addEventListener('click', playRecording);
+}
+
+function toggleRecording() {
+    if (!isRecording) {
+
+        isRecording = true;
+        startTime = Date.now();
+        recordedNotes = [];
+        btnRecord.textContent = 'Stop';
+        btnRecord.classList.add('recording');
+        btnPlay.disabled = true;
+    } else {
+
+        isRecording = false;
+        btnRecord.textContent = 'Record';
+        btnRecord.classList.remove('recording');
+        btnPlay.disabled = recordedNotes.length === 0;
+        console.log("Recording finished:", recordedNotes);
+    }
+}
+
+function playRecording() {
+    if (recordedNotes.length === 0 || isRecording) return;
+
+    btnPlay.disabled = true;
+    btnRecord.disabled = true;
+    btnPlay.textContent = 'Playing...';
+
+    recordedNotes.forEach(note => {
+        setTimeout(() => {
+            playSound(note.id, true);
+        }, note.time);
+    });
+
+
+    const lastTime = recordedNotes[recordedNotes.length - 1].time;
+    setTimeout(() => {
+        btnPlay.disabled = false;
+        btnRecord.disabled = false;
+        btnPlay.textContent = 'Play';
+    }, lastTime + 500);
+}
+
+function playSound(id, isPlayback = false) {
     const filename = sounds[id];
     if (filename) {
         const audio = new Audio(musicFolder + filename);
@@ -38,6 +93,13 @@ function playSound(id) {
         if (btn) {
             btn.classList.add('active');
             setTimeout(() => btn.classList.remove('active'), 100);
+        }
+
+        if (isRecording && !isPlayback) {
+            recordedNotes.push({
+                id: id,
+                time: Date.now() - startTime
+            });
         }
     }
 }
@@ -50,6 +112,9 @@ Object.keys(sounds).forEach(id => {
 });
 
 document.addEventListener('keydown', (e) => {
+
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
     const key = e.key.toUpperCase();
     if (sounds[key]) {
         playSound(key);
